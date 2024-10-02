@@ -119,7 +119,7 @@ public class BallController : MonoBehaviour
             
             swipePosLastFrame = Vector2.zero;
             currentSwipe = Vector2.zero;
-            mouseDown = false;
+            
         }
     }
 

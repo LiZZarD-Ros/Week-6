@@ -9,7 +9,7 @@ public class GameManager : MonoBehaviour
 
     private GroundPiece[] allGroundPieces;
 
-    public int numberOfScenes = 1;
+    public int numberOfScene = 3;
 
     private void Start()
     {
@@ -64,7 +64,7 @@ public class GameManager : MonoBehaviour
     private void NextLevel()
 
     {
-        if(SceneManager.GetActiveScene().buildIndex == numberOfScenes)
+        if(SceneManager.GetActiveScene().buildIndex == numberOfScene)
         {
             SceneManager.LoadScene(0);
         }
