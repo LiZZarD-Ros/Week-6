@@ -7,108 +7,137 @@ public class BallController : MonoBehaviour
     public Rigidbody rb;
     public float speed = 15;
 
+    public int minSwipeRecognition = 500;
+
     private bool isTraveling;
     private Vector3 travelDirection;
-    private Vector3 nextCollisionPostion;
 
-    public int minSwipeRecognition = 500;
     private Vector2 swipePosLastFrame;
     private Vector2 swipePosCurrentFrame;
     private Vector2 currentSwipe;
 
+    private Vector3 nextCollisionPosition;
+
     private Color solveColor;
+
+    public AudioClip swooshSound;
+    public AudioClip hitSound;
+    private AudioSource playerAudio;
+
+    public ParticleSystem hitParticle;
+
+    public bool mouseDown = false;
+
 
     private void Start()
     {
-        solveColor = Random.ColorHSV(0.5f, 1);
+        solveColor = Random.ColorHSV(.5f, 1); // Only take pretty light colors
         GetComponent<MeshRenderer>().material.color = solveColor;
+        playerAudio = GetComponent<AudioSource>();
     }
 
     private void FixedUpdate()
     {
+        // Set the balls speed when it should travel
         if (isTraveling)
         {
-            rb.velocity = speed * travelDirection;
+            rb.velocity = travelDirection * speed;
         }
 
-        Collider[] hitColliders = Physics.OverlapSphere(transform.position - (Vector3.up / 2), 0.05f);
+        // Paint the ground
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position - (Vector3.up / 2), .05f);
         int i = 0;
         while (i < hitColliders.Length)
         {
             GroundPiece ground = hitColliders[i].transform.GetComponent<GroundPiece>();
-            if(ground && !ground.isColored)
+
+            if (ground && !ground.isColored)
             {
                 ground.ChangeColor(solveColor);
             }
+
             i++;
         }
 
-        if (nextCollisionPostion != Vector3.zero)
+        // Check if we have reached our destination
+        if (nextCollisionPosition != Vector3.zero)
         {
-            if (Vector3.Distance(transform.position, nextCollisionPostion) < 1)
-            { 
+            if (Vector3.Distance(transform.position, nextCollisionPosition) < 1)
+            {
+                hitParticle.Play();
+                playerAudio.PlayOneShot(hitSound);
                 isTraveling = false;
                 travelDirection = Vector3.zero;
-                nextCollisionPostion = Vector3.zero;
+                nextCollisionPosition = Vector3.zero;
+                mouseDown = true;
             }
-
         }
 
         if (isTraveling)
             return;
 
+        // Swipe mechanism
         if (Input.GetMouseButton(0))
         {
-            swipePosCurrentFrame = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
+           
+            // Where is the mouse now?
+             swipePosCurrentFrame = new Vector2(Input.mousePosition.x, Input.mousePosition.y);
 
-            if (swipePosLastFrame != Vector2.zero) 
+            if (swipePosLastFrame != Vector2.zero)
             {
+
+                // Calculate the swipe direction
                 currentSwipe = swipePosCurrentFrame - swipePosLastFrame;
 
-                if (currentSwipe.sqrMagnitude < minSwipeRecognition) 
-                return;
-                
+                if (currentSwipe.sqrMagnitude < minSwipeRecognition) // Minium amount of swipe recognition
+                    return;
 
-                currentSwipe.Normalize();
+                currentSwipe.Normalize(); // Normalize it to only get the direction not the distance (would fake the balls speed)
 
-                // Up/Down
-                if(currentSwipe.x > -0.5f && currentSwipe.x < 0.5)
+                // Up/Down swipe
+                if (currentSwipe.x > -0.5f && currentSwipe.x < 0.5f)
                 {
-                    //Go Up/Down
                     SetDestination(currentSwipe.y > 0 ? Vector3.forward : Vector3.back);
                 }
-                // Left/Right
-                if (currentSwipe.y > -0.5f && currentSwipe.y < 0.5)
+
+                // Left/Right swipe
+                if (currentSwipe.y > -0.5f && currentSwipe.y < 0.5f)
                 {
-                    //Go left/right
                     SetDestination(currentSwipe.x > 0 ? Vector3.right : Vector3.left);
                 }
 
+                
+
             }
 
-            swipePosLastFrame = swipePosCurrentFrame;
 
+            swipePosLastFrame = swipePosCurrentFrame;
         }
 
-        if(Input.GetMouseButtonUp(0))
+        if (Input.GetMouseButtonUp(0))
         {
+            
             swipePosLastFrame = Vector2.zero;
             currentSwipe = Vector2.zero;
+            mouseDown = false;
         }
-       
     }
 
     private void SetDestination(Vector3 direction)
     {
         travelDirection = direction;
 
+        // Check with which object we will collide
         RaycastHit hit;
-        if(Physics.Raycast(transform.position, direction, out hit, 100f))
+        if (Physics.Raycast(transform.position, direction, out hit, 100f))
         {
-            nextCollisionPostion = hit.point;
+            nextCollisionPosition = hit.point;
         }
+        playerAudio.PlayOneShot(swooshSound);
+        
 
         isTraveling = true;
-
     }
 }
+
+
